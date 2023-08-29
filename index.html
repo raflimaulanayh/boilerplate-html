@@ -4,12 +4,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="/assets/dist/output.css">
+    <title>Fire Sensor</title>
+    <link rel="stylesheet" href="public/dist/output.css">
+    <link rel="icon" type="image/ico" href="public/static/logo-tech.svg" />
+
+    <script src="mqttws31.js" type="text/javascript"></script>
+    <script src="jquery.min.js" type="text/javascript"></script>
+    <script src="config.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+        var mqtt;
+        var reconnectTimeout = 2000;
+
+        function MQTTconnect() {
+            if (typeof path == "undefined") {
+                path = '/mqtt';
+            }
+            mqtt = new Paho.MQTT.Client(
+                host,
+                port,
+                path,
+                "web_" + parseInt(Math.random() * 100, 10)
+            );
+            var options = {
+                timeout: 3,
+                useSSL: useTLS,
+                cleanSession: cleansession,
+                onSuccess: onConnect,
+                onFailure: function (message) {
+                    $('#status').val("Connection failed: " + message.errorMessage + "Retrying");
+                    setTimeout(MQTTconnect, reconnectTimeout);
+                }
+            };
+
+            mqtt.onConnectionLost = onConnectionLost;
+            mqtt.onMessageArrived = onMessageArrived;
+
+            if (username != null) {
+                options.userName = username;
+                options.password = password;
+            }
+            console.log("Host=" + host + ", port=" + port + ", path=" + path + " TLS = " + useTLS + " username=" + username + " password=" + password);
+            mqtt.connect(options);
+        }
+
+        function onConnect() {
+
+            // console.log("onConnect");
+            // client.subscribe("IoT/temp");
+            // client.subscribe("IoT/hum");
+
+            $('#status').val('Connected to ' + host + ':' + port + path);
+            // Connection succeeded; subscribe to our topic
+            mqtt.subscribe(topic, { qos: 0 });
+            $('#topic').val(topic);
+        }
+
+        function onConnectionLost(response) {
+            setTimeout(MQTTconnect, reconnectTimeout);
+            $('#status').val("connection lost: " + responseObject.errorMessage + ". Reconnecting");
+
+        };
+
+        function onMessageArrived(message) {
+
+            var topic = message.destinationName;
+            var payload = message.payloadString;
+
+            const myArray = payload.split(",");
+            let datasensor = myArray[1];
+            let datasensor1 = myArray[0];
+            let datasensor2 = myArray[2];
+            let datasensor3 = myArray[3];
+            let datasensor4 = myArray[4];
+            let datasensor5 = myArray[5];
+            document.getElementById("val1").innerHTML = datasensor + "   °C";
+            document.getElementById("val2").innerHTML = datasensor1 + "   Rh";
+            document.getElementById("val3").innerHTML = datasensor2 + "   kΩ";
+            document.getElementById("val4").innerHTML = datasensor3 + "   Mdpl";
+            document.getElementById("val5").innerHTML = datasensor4;
+            document.getElementById("val6").innerHTML = datasensor5;
+            var colorStatus;
+            if (datasensor5 == "Aman") {
+                document.getElementById("colorStatus1").innerHTML = "darkgreen";
+                colorStatus = "darkgreen";
+            } else {
+                document.getElementById("colorStatus1").innerHTML = "maroon";
+                colorStatus = "maroon";
+
+            }
+            $('#ws').prepend('<li>' + topic + ' = ' + payload + '</li>');
+
+            // var mysql = require('mysql');
+
+            // var con = mysql.createConnection({
+            //     host: "localhost:8080",
+            //     user: "root",
+            //     password: "",
+            //     database: "pkmdb"
+            // });
+
+            // con.connect(function (err) {
+            //     if (err) throw err;
+            //     console.log("Connected!");
+            //     n = new Date();
+            //     y = n.getFullYear();
+            //     m = n.getMonth() + 1;
+            //     d = n.getDate();
+            //     var tgl = m + "/" + d + "/" + y;
+
+            //     var sql = "INSERT INTO telemetry (tgl, temp,hum,gas,alt,idx,status) VALUES (" + tgl + ", " + datasensor + "," + datasensor1 + "," + datasensor2 + "," + datasensor3 + "," + datasensor4 + "," + datasensor5 + ")";
+            //     con.query(sql, function (err, result) {
+            //         if (err) throw err;
+            //         // console.log("1 record inserted");
+            //     });
+            // });
+        };
+
+
+        $(document).ready(function () {
+            MQTTconnect();
+        });
+
+    </script>
 </head>
 
 <body>
-    <h1 class="text-red-500">Intalled</h1>
+    <div class="flex gap-10">
+        <aside
+            class="flex fixed w-[80px] left-0 lg:w-[120px] flex-col justify-between py-10 items-center h-screen text-center bg-secondary rounded-r-3xl z-50 mr-10 lg:mr-0">
+            <img src="public/static/logo-tech.svg" alt="" width="55" height="55">
+            <nav>
+                <div>
+                    <a class="text-xs w-[80px] lg:w-[120px] space-y-2 flex flex-col items-center font-semibold hover:bg-primary py-5 text-white"
+                        href="/#">
+                        <img src="public/static/icons/home.svg" alt="" height="36" width="36" />
+                        <p>Dashboard</p>
+                    </a>
+                </div>
+                <div>
+                    <a class="text-xs w-[80px] lg:w-[120px] space-y-2 flex flex-col items-center font-semibold hover:bg-primary py-5 text-white"
+                        href="/#">
+                        <img src="public/static/icons/history.svg" alt="" height="36" width="36" />
+                        <p>History</p>
+                    </a>
+                </div>
+            </nav>
+        </aside>
+        <main class="pt-5 pl-24 lg:pt-10 lg:pl-28 container-custom lg:w-11/12">
+            <div class="flex flex-col justify-between lg:items-center sm:flex-row">
+                <h2 class="text-2xl font-semibold lg:text-4xl text-secondary">Fire Sensor</h2>
+                <h2 class="text-lg font-semibold lg:text-3xl text-secondary">Data Hasil Sensor</h2>
+            </div>
+            <article class="grid gap-4 my-10 sm:grid-cols-3 lg:grid-cols-5">
+
+                <figure class="px-6 h-[230px] bg-blue-50 py-8 space-y-7 rounded-2xl">
+                    <img src="public/static/icons/temperature.svg" alt="" width="60" height="60">
+                    <figcaption>
+                        <h4 class="mb-1 text-xl font-semibold uppercase text-secondary">TEMPERATURE</h4>
+                        <p id="val1" class="text-lg text-secondary">29,43 ºC</p>
+                    </figcaption>
+                </figure>
+
+                <figure class="px-6 h-[230px] bg-gray-100 py-8 space-y-7 rounded-2xl">
+                    <img src="public/static/icons/humidity.svg" alt="" width="60" height="60">
+                    <figcaption>
+                        <h4 class="mb-1 text-xl font-semibold text-gray-700 uppercase">HUMIDITY</h4>
+                        <p id="val2" class="text-lg text-gray-700">29,43 %Rh</p>
+                    </figcaption>
+                </figure>
+
+                <figure class="px-6 h-[230px] bg-purple-50 py-8 space-y-7 rounded-2xl">
+                    <img src="public/static/icons/aii-pressure.svg" alt="" width="60" height="60">
+                    <figcaption>
+                        <h4 class="mb-1 text-xl font-semibold text-purple-700 uppercase">AIR PRESSURE</h4>
+                        <p id="val3" class="text-lg text-purple-700">12,8 P</p>
+                    </figcaption>
+                </figure>
+
+                <figure class="px-6 h-[230px] bg-green-50 py-8 space-y-7 rounded-2xl">
+                    <img src="public/static/icons/gas-resistance.svg" alt="" width="60" height="60">
+                    <figcaption>
+                        <h4 class="mb-1 text-xl font-semibold text-green-700 uppercase">GAS RESISTANCE</h4>
+                        <p id="val4" class="text-lg text-green-700">29,43 kΩ</p>
+                    </figcaption>
+                </figure>
+
+                <figure class="px-6 h-[230px] bg-pink-50 py-8 space-y-7 rounded-2xl">
+                    <img src="public/static/icons/approx-altitude.svg" alt="" width="60" height="60">
+                    <figcaption>
+                        <h4 class="mb-1 text-xl font-semibold text-pink-700 uppercase">APPROX ALTITUDE</h4>
+                        <p id="val5" class="text-lg text-pink-700">29,43 Mdpl</p>
+                    </figcaption>
+                </figure>
+
+                <figure class="px-6 h-[230px] bg-yellow-50 py-8 space-y-7 rounded-2xl">
+                    <img src="public/static/icons/light-level.svg" alt="" width="60" height="60">
+                    <figcaption>
+                        <h4 class="mb-1 text-xl font-semibold text-yellow-700 uppercase">LIGHT LEVEL</h4>
+                        <p id="val6" class="text-lg text-yellow-700">29,43 LUX</p>
+                    </figcaption>
+                </figure>
+
+                <div
+                    class="space-y-2 lg:col-span-4 text-center text-white bg-secondary w-full h-[230px] flex justify-center flex-col rounded-2xl">
+                    <h4 class="text-xl font-medium lg:text-2xl">STATUS</h4>
+                    <p class="text-2xl font-semibold lg:text-3xl">Moderate</p>
+                </div>
+
+            </article>
+        </main>
+    </div>
 </body>
 
 </html>
